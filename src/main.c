@@ -274,10 +274,17 @@ static int tab_unpack(lua_State *L){
         int tbl = lua_gettop(L);
 
         for(uint64_t i = 0; i < key_count; i++) {
+			int r = 0;
             lua_pushvalue(L, ud);
-            tab_unpack(L);
+            r = tab_unpack(L);
+			if(!r){
+				return 0;
+			}
             lua_pushvalue(L, ud);
-            tab_unpack(L);
+            r = tab_unpack(L);
+			if(!r){
+				return 0;
+			}
             lua_settable(L, tbl);
         }
 
@@ -293,6 +300,11 @@ static int tab_unpack(lua_State *L){
 	return 0;
 }
 
+static int lua_tabdata(lua_State *L){
+	lua_newuserdata(L, sizeof(struct tab_data));
+	return 1;
+}
+
 static int lua_unpack(lua_State *L){
 	size_t data_size;
 	uint8_t* data = (uint8_t*)luaL_checklstring(L, 1, &data_size);
@@ -302,7 +314,9 @@ static int lua_unpack(lua_State *L){
 		return 1;
 	}
 
-	struct tab_data* tab = (struct tab_data*)lua_newuserdata(L, sizeof(struct tab_data));
+	lua_tabdata(L);
+	struct tab_data* tab = (struct tab_data*)lua_touserdata(L, -1);
+
 	
 	size_t expected_def_size = data_size - 13;
 
@@ -350,7 +364,7 @@ static int lua_unpack(lua_State *L){
 
 	free(def_data);
 
-	return stack + 1;
+	return stack;
 }
 
 static int tab_pack(lua_State *L){
@@ -530,6 +544,9 @@ int luaopen_tab(lua_State *L){
 		{"rawToNumber", rawToNumber},
 		{"unpack", lua_unpack},
 		{"pack", lua_pack},
+		{"tpack", tab_pack},
+		{"tunpack", tab_unpack},
+		{"ttabdata", lua_tabdata},
 		{NULL, NULL}
 	};
 
